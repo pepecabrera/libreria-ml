@@ -21,6 +21,28 @@ La salida incluye también el soporte y el *recall* de las tres clases. La *accu
 
 **Puntuación interna y prueba final:** el 97,24 % de *accuracy* media en validación cruzada se usó para elegir `k`; no es la métrica final. La tabla muestra solo la prueba reservada de Wine. No corresponde al antiguo concurso de clase, que ya no forma parte de la versión actual y cuyos resultados no se presentan como una evaluación independiente.
 
+## Estructura del repositorio
+
+```text
+libreria-ml/
+├── src/                          # Núcleo de la librería
+│   ├── dataset.py                # Colecciones de registros y subconjuntos
+│   ├── factoria.py               # Lectores de CSV y Excel
+│   ├── modelos.py                # kNN, centroides y regresión lineal
+│   ├── preprocesado.py           # Escalado MinMax y Z-score
+│   ├── registro.py               # Observaciones y cálculo de distancias
+│   └── validacion.py             # Particiones, métricas y selección por Pearson
+├── examples/                     # Experimentos y demos ejecutables
+│   └── wine.py                   # Experimento principal con línea base
+├── tests/                        # Pruebas automatizadas con unittest
+├── datos/                        # Datos usados por el experimento y las demos
+│   ├── wine/                     # Dataset Wine y su atribución
+│   └── otros datasets
+├── .github/workflows/
+│   └── ci.yml                    # Ejecuta las pruebas y el ejemplo de Wine
+└── requirements-excel.txt        # Dependencias opcionales para leer Excel
+```
+
 ## Código, pruebas y demos
 
 `src/` contiene los modelos, los lectores CSV y Excel, el escalado MinMax y Z-score, y la selección de atributos por Pearson. El validador ajusta las transformaciones solo con los datos de entrenamiento de cada partición.
