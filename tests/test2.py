@@ -70,7 +70,9 @@ def main():
             idx_objetivo = 0 if nombre == "wine" else -1
 
             if ruta.endswith('.csv') or ruta.endswith('.data'):
-                dataset = FactoriaCSV.crear_dataset_clasificacion(ruta, indice_objetivo=idx_objetivo)
+                dataset = FactoriaCSV.crear_dataset_clasificacion(
+                    ruta, indice_objetivo=idx_objetivo, tiene_cabecera=(nombre != "wine"),
+                )
             elif ruta.endswith('.xlsx') or ruta.endswith('.xls'):
                 dataset = FactoriaXLS.crear_dataset_clasificacion(ruta, indice_objetivo=idx_objetivo)
             else:

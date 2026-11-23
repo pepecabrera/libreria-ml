@@ -33,7 +33,9 @@ def ejecutar_grid_search_avanzado():
     # =========================================================================
     print("\n[1/2] 🧬 Analizando Breast Cancer Wisconsin Diagnostic...")
     ruta_wdbc = "datos/BreastCancerWisconsinDiagnostic/wdbc.data"
-    ds_cancer_bruto = FactoriaCSV.crear_dataset_clasificacion(ruta_wdbc, indice_objetivo=1)
+    ds_cancer_bruto = FactoriaCSV.crear_dataset_clasificacion(
+        ruta_wdbc, indice_objetivo=1, tiene_cabecera=False,
+    )
     ds_cancer_limpio = ds_cancer_bruto.eliminar_atributos([0]) # Bye ID
     
     val_clas = ValidacionClasificacion(metrica="accuracy")

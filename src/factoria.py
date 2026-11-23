@@ -1,4 +1,7 @@
 import csv
+from itertools import chain
+from typing import Union
+
 from .dataset import DataSetClasificacion, DataSetRegresion
 from .registro import RegistroClasificacion, RegistroRegresion
 
@@ -14,59 +17,58 @@ class FactoriaCSV:
     """Clase factoría para crear DataSets a partir de archivos CSV."""
 
     @staticmethod
-    def crear_dataset_clasificacion(ruta_fichero: str, indice_objetivo: int = -1) -> DataSetClasificacion:
-        dataset = DataSetClasificacion()
-        
-        with open(ruta_fichero, mode='r', encoding='utf-8-sig') as file:
-            reader = csv.reader(file)
-            
-            # 1. Leer cabeceras
-            cabeceras = next(reader)
-            
-            # Reorganizamos las cabeceras para asegurar que el objetivo queda al final
-            # y así la función set_cabeceras (que ignora el último elemento) funcione bien.
-            obj_header = cabeceras.pop(indice_objetivo)
-            cabeceras.append(obj_header)
-            dataset.set_cabeceras(cabeceras)
-            
-            # 2. Leer los datos
-            for fila in reader:
-                if not fila or not any(fila):  # Ignorar líneas vacías
-                    continue
-                    
-                # Extraemos la etiqueta objetivo (str) y los atributos (float)
-                objetivo = str(fila.pop(indice_objetivo)).strip()
-                atributos = [float(x.strip()) for x in fila]
-                
-                # Creamos el registro y lo añadimos al DataSet
-                registro = RegistroClasificacion(atributos, objetivo)
-                dataset.agregar_registro(registro)
-                
-        return dataset
+    def crear_dataset_clasificacion(
+        ruta_fichero: str, indice_objetivo: int = -1, *, tiene_cabecera: bool = True,
+    ) -> DataSetClasificacion:
+        """Carga etiquetas de texto; usa tiene_cabecera=False para CSV sin cabecera."""
+        return FactoriaCSV._crear_dataset(
+            ruta_fichero, DataSetClasificacion(), RegistroClasificacion, str,
+            indice_objetivo, tiene_cabecera,
+        )
 
     @staticmethod
-    def crear_dataset_regresion(ruta_fichero: str, indice_objetivo: int = -1) -> DataSetRegresion:
-        dataset = DataSetRegresion()
-        
-        with open(ruta_fichero, mode='r', encoding='utf-8-sig') as file:
-            reader = csv.reader(file)
-            
-            cabeceras = next(reader)
-            obj_header = cabeceras.pop(indice_objetivo)
-            cabeceras.append(obj_header)
-            dataset.set_cabeceras(cabeceras)
-            
-            for fila in reader:
-                if not fila or not any(fila):
-                    continue
-                    
-                # En regresión, el objetivo es un valor numérico (float)
-                objetivo = float(fila.pop(indice_objetivo).strip())
-                atributos = [float(x.strip()) for x in fila]
-                
-                registro = RegistroRegresion(atributos, objetivo)
-                dataset.agregar_registro(registro)
-                
+    def crear_dataset_regresion(
+        ruta_fichero: str, indice_objetivo: Union[int, str] = -1, *,
+        tiene_cabecera: bool = True, excluir_columnas=(),
+    ) -> DataSetRegresion:
+        """Carga un objetivo numérico por índice o nombre y permite excluir columnas por nombre."""
+        return FactoriaCSV._crear_dataset(
+            ruta_fichero, DataSetRegresion(), RegistroRegresion, float,
+            indice_objetivo, tiene_cabecera, excluir_columnas,
+        )
+
+    @staticmethod
+    def _crear_dataset(
+        ruta, dataset, tipo_registro, convertir_objetivo, indice_objetivo,
+        tiene_cabecera, excluir_columnas=(),
+    ):
+        with open(ruta, encoding='utf-8-sig', newline='') as archivo:
+            filas = (fila for fila in csv.reader(archivo) if any(fila))
+            primera = next(filas, None)
+            if primera is None:
+                return dataset
+
+            if tiene_cabecera:
+                cabeceras = [nombre.strip() for nombre in primera]
+            else:
+                cabeceras = [f"columna_{i}" for i in range(len(primera))]
+                filas = chain((primera,), filas)
+
+            indices = range(len(cabeceras))
+            if isinstance(indice_objetivo, str):
+                indice_objetivo = cabeceras.index(indice_objetivo)
+            indice_objetivo = indices[indice_objetivo]
+            excluidos = {cabeceras.index(nombre) for nombre in excluir_columnas}
+            predictores = [i for i in indices if i != indice_objetivo and i not in excluidos]
+            dataset.set_cabeceras([cabeceras[i] for i in predictores] + [cabeceras[indice_objetivo]])
+
+            for fila in filas:
+                if len(fila) != len(cabeceras):
+                    raise ValueError("Una fila del CSV no coincide con el número de columnas esperado.")
+                objetivo = convertir_objetivo(fila[indice_objetivo].strip())
+                atributos = [float(fila[i]) for i in predictores]
+                dataset.agregar_registro(tipo_registro(atributos, objetivo))
+
         return dataset
 
 

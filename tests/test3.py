@@ -17,14 +17,20 @@ def cargar_datos():
     datasets["iris"] = FactoriaXLS.crear_dataset_clasificacion("datos/iris.xlsx", indice_objetivo=-1)
     
     # 2. Diabetes (Clasificación, objetivo al final: -1)
-    datasets["diabetes"] = FactoriaCSV.crear_dataset_clasificacion("datos/diabetes.csv", indice_objetivo=-1)
+    datasets["diabetes"] = FactoriaCSV.crear_dataset_clasificacion(
+        "datos/diabetes.csv", indice_objetivo=-1, tiene_cabecera=True,
+    )
     
     # 3. Wine (Clasificación, objetivo al principio: 0)
-    datasets["wine"] = FactoriaCSV.crear_dataset_clasificacion("datos/wine/wine.data", indice_objetivo=0)
+    datasets["wine"] = FactoriaCSV.crear_dataset_clasificacion(
+        "datos/wine/wine.data", indice_objetivo=0, tiene_cabecera=False,
+    )
     
-    # 4. Boston (Regresión, objetivo al final: -1)
-    # ¡IMPORTANTE! Aquí llamamos a crear_dataset_regresion para que el objetivo sea un float
-    datasets["boston"] = FactoriaCSV.crear_dataset_regresion("datos/BostonHousing.csv", indice_objetivo=-1)
+    # 4. Boston: CAT. MEDV deriva del objetivo y no debe usarse como predictor.
+    datasets["boston"] = FactoriaCSV.crear_dataset_regresion(
+        "datos/BostonHousing.csv", indice_objetivo="MEDV", tiene_cabecera=True,
+        excluir_columnas=("CAT. MEDV",),
+    )
     
     return datasets
 

@@ -32,7 +32,9 @@ def ejecutar_montecarlo(num_iteraciones=60):
     # =========================================================================
     print("\n[1/2] 🧬 Analizando Breast Cancer (Montecarlo)...")
     ruta_wdbc = "datos/BreastCancerWisconsinDiagnostic/wdbc.data"
-    ds_cancer_bruto = FactoriaCSV.crear_dataset_clasificacion(ruta_wdbc, indice_objetivo=1)
+    ds_cancer_bruto = FactoriaCSV.crear_dataset_clasificacion(
+        ruta_wdbc, indice_objetivo=1, tiene_cabecera=False,
+    )
     ds_cancer = ds_cancer_bruto.eliminar_atributos([0]) # Bye ID
     val_clas = ValidacionClasificacion(metrica="accuracy")
 

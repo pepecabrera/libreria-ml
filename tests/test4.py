@@ -14,9 +14,16 @@ def cargar_datos():
     """Carga de datasets usando las factorías estáticas."""
     datasets = {}
     datasets["iris"] = FactoriaXLS.crear_dataset_clasificacion("datos/iris.xlsx", indice_objetivo=-1)
-    datasets["diabetes"] = FactoriaCSV.crear_dataset_clasificacion("datos/diabetes.csv", indice_objetivo=-1)
-    datasets["wine"] = FactoriaCSV.crear_dataset_clasificacion("datos/wine/wine.data", indice_objetivo=0)
-    datasets["boston"] = FactoriaCSV.crear_dataset_regresion("datos/BostonHousing.csv", indice_objetivo=-2)
+    datasets["diabetes"] = FactoriaCSV.crear_dataset_clasificacion(
+        "datos/diabetes.csv", indice_objetivo=-1, tiene_cabecera=True,
+    )
+    datasets["wine"] = FactoriaCSV.crear_dataset_clasificacion(
+        "datos/wine/wine.data", indice_objetivo=0, tiene_cabecera=False,
+    )
+    datasets["boston"] = FactoriaCSV.crear_dataset_regresion(
+        "datos/BostonHousing.csv", indice_objetivo="MEDV", tiene_cabecera=True,
+        excluir_columnas=("CAT. MEDV",),
+    )
     return datasets
 
 def main():
@@ -75,15 +82,15 @@ def main():
     
     # Queremos ver qué pasa si somos muy agresivos: solo el 30% mejor (p=0.3)
     idx_top = seleccionador.seleccion_correlacion(ds_boston, 0.3)
-    print(f"   > Atributos originales: 13")
+    num_atributos = len(ds_boston.nombres_atributos)
+    print(f"   > Atributos originales: {num_atributos}")
     print(f"   > Atributos tras selección (p=0.3): {len(idx_top)} indices -> {idx_top}")
     
     # Crear el dataset reducido
-    indices_borrar = [i for i in range(13) if i not in idx_top]
+    indices_borrar = [i for i in range(num_atributos) if i not in idx_top]
     ds_boston_top = ds_boston.eliminar_atributos(indices_borrar)
     
     # Comparar kNN vs RLM en el dataset reducido
-    # Al no haber shuffle, kNN podría seguir dando 0 si los clones están al final
     knn = Regresor_kNN(k=3)
     
     res_knn = v_mae.validacion_simple(knn, ds_boston_top, 0.8, NormalizadorZ_Score())
