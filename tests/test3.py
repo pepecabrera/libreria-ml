@@ -121,42 +121,18 @@ def main():
     dataset_boston = datasets["boston"]
     num_atributos_original = len(dataset_boston.registros[0].atributos)
     
-    # 1. Instanciamos el seleccionador
-    seleccionador = SeleccionAtributos()
-    
-    # 2. Pedimos que nos devuelva el 50% (p=0.5) de los atributos más correlados con el precio
-    mejores_indices = seleccionador.seleccion_correlacion(dataset_boston, 0.5)
-    print(f"Total atributos originales en Boston: {num_atributos_original}")
-    print(f"Índices de los mejores atributos (Top 50%): {mejores_indices}")
-    
-    # 3. Calculamos cuáles son los índices "basura" (los que NO están en la lista de mejores)
-    indices_a_eliminar = [i for i in range(num_atributos_original) if i not in mejores_indices]
-    print(f"Índices que vamos a eliminar: {indices_a_eliminar}")
-    
-    # 4. Creamos el nuevo DataSet recortado usando nuestro método de la Etapa 10
-    boston_reducido = dataset_boston.eliminar_atributos(indices_a_eliminar)
-    num_atributos_nuevos = len(boston_reducido.registros[0].atributos)
-    print(f"Total atributos tras recorte: {num_atributos_nuevos}")
-    
-    # 5. Evaluamos el mismo modelo kNN, comparando el dataset completo vs el reducido
     reg_knn_boston = Regresor_kNN(k=5, distancia="manhattan")
     val_reg_mae = ValidacionRegresion(metrica="mae")
-    
-    # Usamos la misma semilla aleatoria para que el corte Train/Test sea idéntico y la comparativa sea justa
-    import random
-    random.seed(42)
-    mae_boston_completo = val_reg_mae.validacion_simple(reg_knn_boston, dataset_boston, 0.8, NormalizadorZ_Score())
-    
-    random.seed(42) # Reiniciamos la semilla para que corte exactamente igual
-    mae_boston_reducido = val_reg_mae.validacion_simple(reg_knn_boston, boston_reducido, 0.8, NormalizadorZ_Score())
-    
+    train, test = val_reg_mae.separar(dataset_boston, 0.8)
+    seleccionador = SeleccionAtributos(p=0.5)
+    mae_boston_completo = val_reg_mae.evaluar_particion(reg_knn_boston, train, test, NormalizadorZ_Score())
+    mae_boston_reducido = val_reg_mae.evaluar_particion(
+        reg_knn_boston, train, test, NormalizadorZ_Score(), selector=seleccionador,
+    )
+    indices = seleccionador.indices_seleccionados
+    print(f"Índices seleccionados con entrenamiento (Top 50%): {indices}")
     print(f"\nMAE kNN (Boston Completo - {num_atributos_original} col): {mae_boston_completo:.4f}")
-    print(f"MAE kNN (Boston Reducido - {num_atributos_nuevos} col): {mae_boston_reducido:.4f}")
-    
-    if mae_boston_reducido <= mae_boston_completo:
-        print("🎯 ¡ÉXITO! El modelo es igual o más preciso, ¡y además calcula el doble de rápido!")
-    else:
-        print("ℹ️ NOTA: El error ha subido ligeramente, pero a cambio el modelo es el doble de rápido y ocupa menos memoria.")
+    print(f"MAE kNN (Boston Reducido - {len(indices)} col): {mae_boston_reducido:.4f}")
     
     print("\n" + "="*60)
     print("✅ PRUEBAS FINALIZADAS")

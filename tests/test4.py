@@ -78,23 +78,15 @@ def main():
     # 3. SELECCIÓN DE ATRIBUTOS Y RENDIMIENTO (ETAPA 10)
     # ---------------------------------------------------------
     print("\n🔹 [OPTIMIZACIÓN] Selección de Atributos por Pearson")
-    seleccionador = SeleccionAtributos()
-    
-    # Queremos ver qué pasa si somos muy agresivos: solo el 30% mejor (p=0.3)
-    idx_top = seleccionador.seleccion_correlacion(ds_boston, 0.3)
+    seleccionador = SeleccionAtributos(p=0.3)
     num_atributos = len(ds_boston.nombres_atributos)
     print(f"   > Atributos originales: {num_atributos}")
-    print(f"   > Atributos tras selección (p=0.3): {len(idx_top)} indices -> {idx_top}")
-    
-    # Crear el dataset reducido
-    indices_borrar = [i for i in range(num_atributos) if i not in idx_top]
-    ds_boston_top = ds_boston.eliminar_atributos(indices_borrar)
-    
-    # Comparar kNN vs RLM en el dataset reducido
+    train, test = v_mae.separar(ds_boston, 0.8)
     knn = Regresor_kNN(k=3)
-    
-    res_knn = v_mae.validacion_simple(knn, ds_boston_top, 0.8, NormalizadorZ_Score())
-    res_rlm = v_mae.validacion_simple(rlm, ds_boston_top, 0.8, NormalizadorZ_Score())
+    res_knn = v_mae.evaluar_particion(knn, train, test, NormalizadorZ_Score(), selector=seleccionador)
+    res_rlm = v_mae.evaluar_particion(rlm, train, test, NormalizadorZ_Score(), selector=seleccionador)
+    idx_top = seleccionador.indices_seleccionados
+    print(f"   > Atributos seleccionados con entrenamiento (p=0.3): {len(idx_top)} índices -> {idx_top}")
     
     print(f"   > MAE kNN (Reducido): {res_knn:.4f}")
     print(f"   > MAE RLM (Reducido): {res_rlm:.4f}")
@@ -106,7 +98,7 @@ def main():
     # Al no haber shuffle, las "m" bolsas son bloques contiguos del archivo.
     # Si el archivo está ordenado, la CV dará resultados muy pobres.
     cv_acc = val_acc.validacion_cruzada(centroide, datasets["wine"], m=5, normalizador=NormalizadorMaxMin())
-    print(f"   > WINE - Accuracy Media CV: {cv_acc:.4f}")
+    print(f"   > WINE - Puntuación interna (Accuracy media CV): {cv_acc:.4f}")
     print("   Info: Si este valor es muy bajo respecto a la validación simple,")
     print("   indica que las clases en el CSV están agrupadas por bloques.")
 

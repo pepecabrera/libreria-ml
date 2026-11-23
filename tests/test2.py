@@ -6,9 +6,9 @@ import os
 # Esto añade la carpeta superior a la lista de sitios donde Python busca archivos
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import random
 from src.factoria import FactoriaCSV, FactoriaXLS # Ahora se importan desde 'src'
 from src.modelos import Clasificador_kNN
+from src.validacion import ValidacionClasificacion
 
 def evaluar_dataset(dataset, nombre_dataset):
     """
@@ -18,43 +18,34 @@ def evaluar_dataset(dataset, nombre_dataset):
     print(f"📊 EVALUANDO DATASET: {nombre_dataset.upper()}")
     print(f"{'='*60}")
 
-    registros = dataset.registros.copy()
-    random.seed(42)  
-    random.shuffle(registros)
+    validador = ValidacionClasificacion()
+    desarrollo, prueba_final = validador.separar(dataset, 0.8, semilla=42)
 
-    corte = int(len(registros) * 0.8)
-    train_ds = dataset.crear_subconjunto(registros[:corte])
-    test_ds  = dataset.crear_subconjunto(registros[corte:])
-
-    print(f"Total registros: {len(registros)} -> Entrenamiento: {len(train_ds.registros)} | Test: {len(test_ds.registros)}")
+    print(f"Desarrollo: {len(desarrollo.registros)} | Prueba final reservada: {len(prueba_final.registros)}")
     print("-" * 60)
 
     valores_k = [1, 3, 5, 7, 9]
     distancias = ["euclídea", "manhattan"]
 
     mejor_accuracy = -1.0
-    mejor_config = ""
+    mejor_config = None
 
     for k in valores_k:
         for dist in distancias:
             modelo = Clasificador_kNN(k=k, distancia=dist)
-            modelo.entrenar(train_ds)
-
-            aciertos = 0
-            for reg_test in test_ds.registros:
-                prediccion = modelo.predecir(reg_test)
-                if prediccion == reg_test.objetivo:
-                    aciertos += 1
-
-            accuracy = aciertos / len(test_ds.registros)
-            print(f"k={k:2} | distancia={dist:10} -> Accuracy: {accuracy:.4f} ({aciertos}/{len(test_ds.registros)})")
+            accuracy = validador.validacion_cruzada(modelo, desarrollo, m=5)
+            print(f"k={k:2} | distancia={dist:10} -> Accuracy interna (CV): {accuracy:.4f}")
 
             if accuracy > mejor_accuracy:
                 mejor_accuracy = accuracy
-                mejor_config = f"k={k}, distancia={dist}"
+                mejor_config = (k, dist)
 
     print("-" * 60)
-    print(f"🏆 MEJOR CONFIGURACIÓN: {mejor_config} (Accuracy: {mejor_accuracy:.4f})")
+    k, dist = mejor_config
+    ganador = Clasificador_kNN(k=k, distancia=dist)
+    accuracy_final = validador.evaluar_particion(ganador, desarrollo, prueba_final)
+    print(f"Mejor configuración: k={k}, distancia={dist} (puntuación interna: {mejor_accuracy:.4f})")
+    print(f"Accuracy en la prueba final reservada: {accuracy_final:.4f}")
 
 def main():
     # Rutas actualizadas con tus nuevos nombres y carpetas

@@ -1,6 +1,7 @@
 import random
 import math
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from typing import List, Any, Optional
 from .dataset import DataSet
 from .modelos import Modelo
@@ -17,13 +18,25 @@ class Validacion(ABC):
     def calcular_metricas(self, predichos: List[Any], reales: List[Any]) -> float:
         pass
 
-    def validacion_simple(self, modelo: Modelo, dataset: DataSet, porcentaje: float, normalizador: Optional[Preprocesamiento] = None) -> float:
+    @staticmethod
+    def separar(dataset: DataSet, porcentaje: float, *, semilla: Optional[int] = None):
+        """Separa dos conjuntos; solo baraja si se indica una semilla."""
         registros = dataset.registros.copy()
-        #random.shuffle(registros)
-
+        if semilla is not None:
+            random.Random(semilla).shuffle(registros)
         corte = int(len(registros) * porcentaje)
-        train_ds = dataset.crear_subconjunto(registros[:corte])
-        test_ds = dataset.crear_subconjunto(registros[corte:])
+        if not 0 < corte < len(registros):
+            raise ValueError("La partición debe dejar registros en ambos conjuntos.")
+        return dataset.crear_subconjunto(registros[:corte]), dataset.crear_subconjunto(registros[corte:])
+
+    def predecir_particion(self, modelo: Modelo, train_ds: DataSet, test_ds: DataSet,
+                           normalizador: Optional[Preprocesamiento] = None, *,
+                           selector: Optional['SeleccionAtributos'] = None) -> List[Any]:
+        """Ajusta todo con entrenamiento y devuelve las predicciones en el orden de test."""
+        if selector is not None:
+            selector.ajustar(train_ds)
+            train_ds = selector.transformar(train_ds)
+            test_ds = selector.transformar(test_ds)
 
         if normalizador is not None:
             normalizador.ajustar(train_ds)
@@ -31,17 +44,29 @@ class Validacion(ABC):
             test_ds = normalizador.transformar_dataSet(test_ds)
 
         modelo.entrenar(train_ds)
+        return [modelo.predecir(reg) for reg in test_ds.registros]
 
-        predichos = [modelo.predecir(reg) for reg in test_ds.registros]
+    def evaluar_particion(self, modelo: Modelo, train_ds: DataSet, test_ds: DataSet,
+                          normalizador: Optional[Preprocesamiento] = None, *,
+                          selector: Optional['SeleccionAtributos'] = None) -> float:
+        predichos = self.predecir_particion(modelo, train_ds, test_ds, normalizador, selector=selector)
         reales = [reg.objetivo for reg in test_ds.registros]
-
         return self.calcular_metricas(predichos, reales)
 
-    def validacion_cruzada(self, modelo: Modelo, dataset: DataSet, m: int, normalizador: Optional[Preprocesamiento] = None) -> float:
-        registros = dataset.registros.copy()
-        #random.shuffle(registros)
+    def validacion_simple(self, modelo: Modelo, dataset: DataSet, porcentaje: float,
+                          normalizador: Optional[Preprocesamiento] = None, *,
+                          selector: Optional['SeleccionAtributos'] = None) -> float:
+        train_ds, test_ds = self.separar(dataset, porcentaje)
+        return self.evaluar_particion(modelo, train_ds, test_ds, normalizador, selector=selector)
 
+    def validacion_cruzada(self, modelo: Modelo, dataset: DataSet, m: int,
+                           normalizador: Optional[Preprocesamiento] = None, *,
+                           selector: Optional['SeleccionAtributos'] = None) -> float:
+        """Puntúa m bolsas contiguas, sin barajar y con el resto en la última."""
+        registros = dataset.registros
         n = len(registros)
+        if not 2 <= m <= n:
+            raise ValueError("m debe estar entre 2 y el número de registros.")
         tam_bolsa = n // m
         bolsas = []
 
@@ -62,17 +87,10 @@ class Validacion(ABC):
             train_ds = dataset.crear_subconjunto(train_regs)
             test_ds = dataset.crear_subconjunto(test_regs)
 
-            if normalizador is not None:
-                normalizador.ajustar(train_ds)
-                train_ds = normalizador.transformar_dataSet(train_ds)
-                test_ds = normalizador.transformar_dataSet(test_ds)
-
-            modelo.entrenar(train_ds)
-
-            predichos = [modelo.predecir(reg) for reg in test_ds.registros]
-            reales = [reg.objetivo for reg in test_ds.registros]
-
-            metricas_iteraciones.append(self.calcular_metricas(predichos, reales))
+            metricas_iteraciones.append(self.evaluar_particion(
+                deepcopy(modelo), train_ds, test_ds, deepcopy(normalizador),
+                selector=deepcopy(selector),
+            ))
 
         return sum(metricas_iteraciones) / m
 
@@ -126,7 +144,28 @@ class SeleccionAtributos:
     """
     Clase encargada de analizar y seleccionar los mejores atributos de un DataSet.
     """
-    
+    def __init__(self, p: float = 1.0):
+        self.p = p
+        self.indices_seleccionados = None
+        self._indices_descartados = None
+
+    def ajustar(self, dataset: DataSet):
+        """Aprende las columnas con las etiquetas de entrenamiento."""
+        indices = self.seleccion_correlacion(dataset, self.p)
+        if not indices:
+            raise ValueError("No hay atributos para ajustar el selector.")
+        seleccionados = set(indices)
+        self.indices_seleccionados = indices
+        self._indices_descartados = [
+            i for i in range(len(dataset.registros[0].atributos)) if i not in seleccionados
+        ]
+
+    def transformar(self, dataset: DataSet) -> DataSet:
+        """Aplica el filtro aprendido sin consultar las etiquetas del conjunto."""
+        if self._indices_descartados is None:
+            raise ValueError("El selector debe ajustarse antes de transformar.")
+        return dataset.eliminar_atributos(self._indices_descartados)
+
     def seleccion_correlacion(self, dataset: DataSet, p: float) -> List[int]:
         """
         Calcula la correlación de Pearson de cada atributo con el objetivo.

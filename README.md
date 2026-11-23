@@ -39,7 +39,9 @@ El núcleo inteligente del proyecto. Todos heredan de la clase base `Modelo` e i
 Evalúa cómo de buenos son los modelos prediciendo datos que nunca han visto.
 * **Evaluadores (`ValidacionClasificacion` / `ValidacionRegresion`):** * *Funciones clave:* `validacion_simple` (Hold-out test) y `validacion_cruzada` (k-Fold).
   * *Métricas dinámicas soportadas:* Accuracy y Error Rate (Clasificación) | MAE, MSE y RMSE (Regresión).
-* **`SeleccionAtributos`:** Incluye el método `seleccion_correlacion` que utiliza el Coeficiente de Correlación de Pearson para identificar y filtrar el Top % de atributos más útiles, reduciendo el ruido del modelo.
+* **`SeleccionAtributos`:** Ordena los atributos por su correlación absoluta de Pearson con el objetivo. Si se pasa al validador junto al escalador, ambos se ajustan solo con entrenamiento, también dentro de cada bolsa.
+
+Para buscar hiperparámetros, reserva primero una prueba final. Compara los candidatos mediante validación cruzada en el conjunto de desarrollo, con las mismas bolsas contiguas para todos. Esa CV es una **puntuación interna**; ajusta de nuevo solo la configuración elegida con todo el conjunto de desarrollo y evalúala una vez en la prueba reservada. `tests/test2.py` muestra este flujo.
 
 ---
 
@@ -49,31 +51,29 @@ Aquí tienes un flujo de trabajo típico usando la librería para predecir el pr
 
 ```python
 # 1. Importar los módulos necesarios
-from src.dataset import DataSetRegresion
+from src.factoria import FactoriaCSV
 from src.preprocesado import NormalizadorZ_Score
 from src.modelos import Regresor_kNN
 from src.validacion import ValidacionRegresion, SeleccionAtributos
 
-# 2. Cargar los datos (Asumiendo que existe un lector de CSV previamente implementado)
-dataset_boston = DataSetRegresion("datos/boston.csv")
+# 2. Cargar el objetivo y excluir su versión categorizada
+dataset_boston = FactoriaCSV.crear_dataset_regresion(
+    "datos/BostonHousing.csv", indice_objetivo="MEDV", tiene_cabecera=True,
+    excluir_columnas=("CAT. MEDV",),
+)
 
-# 3. (Opcional) Selección de Atributos: Quedarse con el 50% mejor
-seleccionador = SeleccionAtributos()
-mejores_indices = seleccionador.seleccion_correlacion(dataset_boston, p=0.5)
-indices_basura = [i for i in range(len(dataset_boston.registros[0].atributos)) if i not in mejores_indices]
-boston_limpio = dataset_boston.eliminar_atributos(indices_basura)
-
-# 4. Configurar el Modelo y el Evaluador
+# 3. Fijar la configuración antes de evaluar
 modelo_knn = Regresor_kNN(k=5, distancia="manhattan")
 evaluador = ValidacionRegresion(metrica="rmse") # Raíz del Error Cuadrático Medio
 normalizador = NormalizadorZ_Score()
 
-# 5. Ejecutar la validación (80% Train, 20% Test)
+# 4. Ajustar Pearson y el escalador en el 80% de entrenamiento
 error_rmse = evaluador.validacion_simple(
     modelo=modelo_knn, 
-    dataset=boston_limpio, 
+    dataset=dataset_boston,
     porcentaje=0.8, 
-    normalizador=normalizador
+    normalizador=normalizador,
+    selector=SeleccionAtributos(p=0.5),
 )
 
 print(f"El error RMSE del modelo es: {error_rmse:.4f}")
