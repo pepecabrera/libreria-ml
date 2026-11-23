@@ -1,4 +1,4 @@
-# Pruebas de la primera parte de la práctica. Demostración de funciones básicas de registros. Fecha: 20/02/2026.
+# Demostración de funciones básicas de registros.
 
 import sys
 import os

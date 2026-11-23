@@ -41,44 +41,27 @@ Evalúa cómo de buenos son los modelos prediciendo datos que nunca han visto.
   * *Métricas dinámicas soportadas:* Accuracy y Error Rate (Clasificación) | MAE, MSE y RMSE (Regresión).
 * **`SeleccionAtributos`:** Ordena los atributos por su correlación absoluta de Pearson con el objetivo. Si se pasa al validador junto al escalador, ambos se ajustan solo con entrenamiento, también dentro de cada bolsa.
 
-Para buscar hiperparámetros, reserva primero una prueba final. Compara los candidatos mediante validación cruzada en el conjunto de desarrollo, con las mismas bolsas contiguas para todos. Esa CV es una **puntuación interna**; ajusta de nuevo solo la configuración elegida con todo el conjunto de desarrollo y evalúala una vez en la prueba reservada. `tests/test2.py` muestra este flujo.
+Para buscar hiperparámetros, reserva primero una prueba final. Compara los candidatos mediante validación cruzada en el conjunto de desarrollo, con las mismas bolsas contiguas para todos. Esa CV es una **puntuación interna**; ajusta de nuevo solo la configuración elegida con todo el conjunto de desarrollo y evalúala una vez en la prueba reservada.
 
 ---
 
-## 🚀 Ejemplo de Uso Completo
+## Experimento reproducible: Wine
 
-Aquí tienes un flujo de trabajo típico usando la librería para predecir el precio de las casas en Boston:
+Desde la raíz del repositorio, ejecuta el ejemplo principal. No requiere instalar paquetes externos:
 
-```python
-# 1. Importar los módulos necesarios
-from src.factoria import FactoriaCSV
-from src.preprocesado import NormalizadorZ_Score
-from src.modelos import Regresor_kNN
-from src.validacion import ValidacionRegresion, SeleccionAtributos
-
-# 2. Cargar el objetivo y excluir su versión categorizada
-dataset_boston = FactoriaCSV.crear_dataset_regresion(
-    "datos/BostonHousing.csv", indice_objetivo="MEDV", tiene_cabecera=True,
-    excluir_columnas=("CAT. MEDV",),
-)
-
-# 3. Fijar la configuración antes de evaluar
-modelo_knn = Regresor_kNN(k=5, distancia="manhattan")
-evaluador = ValidacionRegresion(metrica="rmse") # Raíz del Error Cuadrático Medio
-normalizador = NormalizadorZ_Score()
-
-# 4. Ajustar Pearson y el escalador en el 80% de entrenamiento
-error_rmse = evaluador.validacion_simple(
-    modelo=modelo_knn, 
-    dataset=dataset_boston,
-    porcentaje=0.8, 
-    normalizador=normalizador,
-    selector=SeleccionAtributos(p=0.5),
-)
-
-print(f"El error RMSE del modelo es: {error_rmse:.4f}")
+```bash
+python3 -m examples.wine
 ```
 
+El ejemplo reserva aproximadamente el 20 % de cada clase con semilla `42`. Elige `k` por validación cruzada en el resto de los datos y ajusta el escalador Z-score solo con entrenamiento en cada bolsa. En la prueba reservada compara kNN con una línea base que siempre predice la clase mayoritaria del conjunto de desarrollo. Muestra el soporte por clase, el *accuracy*, el *accuracy* balanceado (promedio del *recall* por clase) y el *recall* de cada clase. Es una sola partición de un dataset pequeño; no mide la variación entre distintas particiones.
+
+Fuente: [Wine de UCI, CC BY 4.0](datos/wine/README.md).
+
+Las [demos de clase](examples/) se conservan por separado. Para ejecutar las pruebas automatizadas:
+
+```bash
+python3 -m unittest discover -s tests -v
+```
 
 ## 📂 Estructura del Proyecto
 
@@ -102,11 +85,6 @@ print(f"El error RMSE del modelo es: {error_rmse:.4f}")
 │   ├── 📄 registro.py                              # Estructura de filas (Clasificación y Regresión)
 │   └── 📄 validacion.py                            # Evaluación de métricas, k-Fold y Pearson
 │
-└── 📁 tests/                                       # Batería de pruebas y ejecución
-    ├── 📄 test1.py
-    ├── 📄 test2.py
-    ├── 📄 test3.py
-    └── 📄 test4.py                                 # Script principal de ejecución de las etapas
-
-El apartado concurso está reservado para una actividad especial ajena al proyecto principal.
+├── examples/                                      # Experimento Wine y demos de clase
+└── tests/                                         # Pruebas automatizadas con unittest
 ```

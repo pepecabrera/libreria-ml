@@ -1,4 +1,4 @@
-# Pruebas de la segunda parte de la práctica. Lectura y análisis de datasets, con accuracy y número de vecinos. Fecha: 27/02/2026.
+# Demostración de búsqueda de hiperparámetros con prueba final reservada.
 
 import sys
 import os

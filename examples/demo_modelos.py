@@ -1,3 +1,5 @@
+"""Demostración de clasificación, regresión y preprocesamiento."""
+
 import sys
 import os
 

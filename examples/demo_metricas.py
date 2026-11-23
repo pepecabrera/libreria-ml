@@ -1,3 +1,5 @@
+"""Demostración de métricas y selección de atributos."""
+
 import sys
 import os
 import random
