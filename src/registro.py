@@ -1,6 +1,12 @@
 import math
 from typing import List, Union
 
+
+def _validar_k(k: int):
+    if not isinstance(k, int) or isinstance(k, bool) or k <= 0:
+        raise ValueError("k debe ser un entero positivo.")
+
+
 class Registro:
     """
     Clase base que representa un conjunto de puntos en un espacio n-dimensional.
@@ -79,17 +85,16 @@ class Registro:
         """
         Devuelve una lista con los índices de los 'k' registros más cercanos.
         Omite al propio objeto si está en la lista.
+        Lanza ValueError si hay menos de k vecinos disponibles.
         """
-        distancias = []
-        for indice, registro in enumerate(lista_registros):
-            dist = self.calcula_distancia(registro, tipo, pesos)
-            if registro is self:
-                continue
-            distancias.append((dist, indice))
-            
+        _validar_k(k)
+        candidatos = [(i, reg) for i, reg in enumerate(lista_registros) if reg is not self]
+        if len(candidatos) < k:
+            raise ValueError(f"Se requieren k={k} vecinos, pero solo hay {len(candidatos)} disponibles.")
+
+        distancias = [(self.calcula_distancia(reg, tipo, pesos), i) for i, reg in candidatos]
         distancias.sort(key=lambda x: x[0])
-        indices_k_vecinos = [item[1] for item in distancias[:k]]
-        return indices_k_vecinos
+        return [indice for _, indice in distancias[:k]]
     
     def estandarizar(self, medias: List[float], desviaciones: List[float]) -> 'Registro':
         """

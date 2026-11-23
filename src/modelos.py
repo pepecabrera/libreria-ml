@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Dict, Any
 import random
 from .dataset import DataSet
-from .registro import Registro
+from .registro import Registro, _validar_k
 
 class Modelo(ABC):
     """
@@ -32,6 +32,7 @@ class Clasificador_kNN(Modelo):
     Modelo de clasificación basado en los k vecinos más cercanos (k-Nearest Neighbors).
     """
     def __init__(self, k: int, distancia: str = "euclidea", pesos: List[float] = None):
+        _validar_k(k)
         super().__init__()  # Llama al constructor de Modelo para inicializar datos_entrenamiento
         self.k = k
         self.distancia = distancia
@@ -42,7 +43,7 @@ class Clasificador_kNN(Modelo):
         Predice la etiqueta del registro buscando sus k vecinos más cercanos 
         en el dataset de entrenamiento y aplicando votación por mayoría.
         """
-        if self.datos_entrenamiento is None or not self.datos_entrenamiento.registros:
+        if self.datos_entrenamiento is None:
             raise ValueError("El modelo debe ser entrenado (método entrenar) antes de poder predecir.")
 
         # 1. Obtener los índices de los k vecinos más cercanos usando el método de la clase Registro
@@ -97,6 +98,7 @@ class Regresor_kNN(Modelo):
     Predice el valor calculando la media de los valores de sus k vecinos.
     """
     def __init__(self, k: int = 3, distancia: str = "euclidea", pesos: str = "uniforme"):
+        _validar_k(k)
         super().__init__()
         self.k = k
         self.distancia = distancia
@@ -108,6 +110,9 @@ class Regresor_kNN(Modelo):
 
     def predecir(self, registro: Registro) -> float:
         """Devuelve la media del atributo objetivo de los k vecinos más cercanos."""
+        if self.datos_entrenamiento is None:
+            raise ValueError("El modelo debe ser entrenado (método entrenar) antes de poder predecir.")
+
         # Ahora sabemos que esto devuelve índices (ej: [12, 45, 3])
         indices_vecinos = registro.k_vecinos(self.datos_entrenamiento.registros, self.k, self.distancia)
         

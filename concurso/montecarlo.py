@@ -21,7 +21,6 @@ def ejecutar_montecarlo(num_iteraciones=60):
     # Espacio de búsqueda amplio (al ser aleatorio, podemos permitirnos más opciones)
     valores_k = [1, 3, 5, 7, 9, 11, 15, 19, 21, 25] 
     preprocesadores = [(None, "Sin Normalizar"), (NormalizadorMaxMin(), "MaxMin"), (NormalizadorZ_Score(), "Z-Score")]
-    pesos_distancia = ["uniforme", "distancia"]
     distancias = ["euclidea", "manhattan"]
     porcentajes_seleccion = [1.0, 0.8, 0.6]
 
@@ -45,7 +44,6 @@ def ejecutar_montecarlo(num_iteraciones=60):
         # 1. Elección Aleatoria
         k = random.choice(valores_k)
         dist = random.choice(distancias)
-        peso = random.choice(pesos_distancia)
         prep_obj, prep_nombre = random.choice(preprocesadores)
         p_sel = random.choice(porcentajes_seleccion)
 
@@ -60,12 +58,12 @@ def ejecutar_montecarlo(num_iteraciones=60):
             txt_sel = "100%"
 
         # 3. K-Fold CV
-        modelo_knn = Clasificador_kNN(k=k, distancia=dist, pesos=peso)
+        modelo_knn = Clasificador_kNN(k=k, distancia=dist)
         try:
             acc = val_clas.validacion_cruzada(modelo_knn, ds_actual, m=5, normalizador=prep_obj)
             if acc > mejor_acc:
                 mejor_acc = acc
-                mejor_comb_cancer = f"k={k} | Dist={dist} | Pesos={peso} | Prep={prep_nombre} | Filtro={txt_sel}"
+                mejor_comb_cancer = f"k={k} | Dist={dist} | Prep={prep_nombre} | Filtro={txt_sel}"
                 print(f"   🚀 Nuevo récord: {mejor_acc:.4f} -> {mejor_comb_cancer}")
         except Exception:
             pass
@@ -88,7 +86,6 @@ def ejecutar_montecarlo(num_iteraciones=60):
     for i in range(num_iteraciones):
         k = random.choice(valores_k)
         dist = random.choice(distancias)
-        peso = random.choice(pesos_distancia)
         prep_obj, prep_nombre = random.choice(preprocesadores)
         p_sel = random.choice(porcentajes_seleccion)
 
@@ -101,12 +98,12 @@ def ejecutar_montecarlo(num_iteraciones=60):
             ds_actual = ds_concrete
             txt_sel = "100%"
 
-        modelo_reg = Regresor_kNN(k=k, distancia=dist, pesos=peso)
+        modelo_reg = Regresor_kNN(k=k, distancia=dist)
         try:
             mse = val_reg.validacion_cruzada(modelo_reg, ds_actual, m=5, normalizador=prep_obj)
             if mse < mejor_mse:
                 mejor_mse = mse
-                mejor_comb_concrete = f"k={k} | Dist={dist} | Pesos={peso} | Prep={prep_nombre} | Filtro={txt_sel}"
+                mejor_comb_concrete = f"k={k} | Dist={dist} | Prep={prep_nombre} | Filtro={txt_sel}"
                 print(f"   📉 Nuevo récord: {mejor_mse:.4f} -> {mejor_comb_concrete}")
         except Exception:
             pass

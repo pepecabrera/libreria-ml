@@ -62,7 +62,7 @@ def main():
     v_mse = ValidacionRegresion(metrica="mse")
     v_rmse = ValidacionRegresion(metrica="rmse")
     
-    rlm = Regresor_kNN(k = 5)
+    rlm = Regresor_lineal_multiple(learning_rate=0.01, epocas=500)
     
     # Ejecutamos con el mismo dataset para comparar magnitudes
     mae_val = v_mae.validacion_simple(rlm, ds_boston, 0.8, NormalizadorMaxMin())

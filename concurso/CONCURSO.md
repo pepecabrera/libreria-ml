@@ -4,7 +4,7 @@
 **Metodología:** Grid Search (Búsqueda en Cuadrícula) y Detección de Trampas.
 
 ## 1. Planteamiento del Problema
-El objetivo de este reto consiste en encontrar la combinación óptima de hiperparámetros (valor de $k$, método de preprocesamiento y esquema de pesos) para dos datasets distintos, utilizando un modelo de vecinos más cercanos (k-NN) evaluado mediante **Validación Cruzada de 5 bolsas (m=5) sin barajado previo (No Shuffle)**.
+El objetivo de este reto consiste en comparar configuraciones de k-NN para dos datasets mediante **validación cruzada de 5 bolsas (m=5) sin barajado previo**. Se varían $k$, la distancia, el preprocesamiento y la fracción de atributos seleccionados. El voto y la media son uniformes, por lo que no se busca un esquema de pesos.
 
 ## 2. Análisis de Datos y Evasión de "Trampas" (Data Quirks)
 
@@ -22,9 +22,10 @@ Antes de automatizar la búsqueda, se realizó un análisis exploratorio que rev
 Al aplicar Validación Cruzada $m=5$ sin `shuffle`, los datos se parten en bloques secuenciales. Si el dataset está ordenado por clases (por ejemplo, todos los tumores malignos al principio y los benignos al final), el modelo entrenará con una clase e intentará predecir una clase que jamás ha visto, hundiendo el Accuracy.
 
 Para mitigar esto, hemos implementado un **Grid Search de Fuerza Bruta**. El script anida bucles para probar matemáticamente todas las combinaciones posibles:
-* **$K$:** `[1, 3, 5, 7, 9, 11, 15]`
-* **Pesos:** `['uniforme', 'distancia']`
+* **$K$:** `[1, 3, 5, 7, 9, 11, 15, 19, 23]`
+* **Distancia:** `[Euclídea, Manhattan]`
 * **Preprocesado:** `[Sin Normalizar, MaxMin, Z-Score]`
+* **Fracción de atributos:** `[1.0, 0.75, 0.5]`
 
 Al forzar el recorrido completo, delegamos en la potencia de cómputo la búsqueda del "espacio latente" menos afectado por la partición secuencial del archivo, asegurando el menor MSE (Error Cuadrático Medio) en regresión y el mayor Accuracy en clasificación.
 
