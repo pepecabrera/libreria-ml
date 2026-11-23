@@ -7,3 +7,8 @@ __pycache__/
 .coverage
 .coverage.*
 htmlcov/
+
+# Materiales locales de clase sin permiso de redistribución confirmado
+/datos/Laboratorio *.pdf
+/datos/BostonHousing.csv
+/datos/diabetes.csv

@@ -1,98 +1,40 @@
-# 🧠 Librería de Machine Learning (Desde Cero)
+# Librería educativa de machine learning
 
-Este proyecto es una implementación educativa y orientada a objetos de algoritmos clásicos de Machine Learning construida completamente desde cero en Python. El objetivo de esta librería es comprender las matemáticas y la lógica interna ("bajo el capó") de los modelos de aprendizaje automático, sin depender de librerías externas de ML como Scikit-Learn.
+Proyecto individual de clase de Pepe Cabrera. Implementé desde cero en Python el núcleo de la librería: kNN para clasificación y regresión, clasificación por centroides, regresión lineal por descenso de gradiente y herramientas para cargar, preprocesar y evaluar datos. Los datasets y los enunciados de la asignatura no son de mi autoría.
 
-El proyecto soporta tanto tareas de **Clasificación** como de **Regresión**, e incluye herramientas para el preprocesamiento de datos, entrenamiento de modelos, evaluación de métricas y selección de atributos.
+## Ejecutar el experimento de Wine
 
----
-
-## 🏗️ Arquitectura del Proyecto
-
-El código está estructurado en módulos altamente cohesivos utilizando los principios de la Programación Orientada a Objetos (Herencia, Polimorfismo y Clases Abstractas).
-
-### 1. `registro.py` (Unidad básica de datos)
-Gestiona la información a nivel de fila individual.
-* **`Registro` (Abstracta):** Almacena una lista de números reales (`atributos`) y provee métodos matemáticos como `distancia_euclidea` y `distancia_manhattan`.
-* **`RegistroClasificacion`:** Hereda de `Registro`. Su `objetivo` (etiqueta a predecir) es una cadena de texto (`str`), ej: `"Iris-setosa"`.
-* **`RegistroRegresion`:** Hereda de `Registro`. Su `objetivo` es un valor numérico continuo (`float`), ej: `250000.0` (precio).
-
-### 2. `dataset.py` (Gestor de colecciones)
-Gestiona conjuntos de registros y operaciones sobre la matriz de datos.
-* **`DataSet` (Abstracta):** Almacena una lista de objetos `Registro`.
-  * *Funciones clave:* `crear_subconjunto()` para dividir datos, `calcular_min_max()` (hace la transpuesta de la matriz para hallar extremos) y `eliminar_atributos()` para descartar columnas basura.
-* **`DataSetClasificacion` / `DataSetRegresion`:** Implementaciones específicas según la naturaleza del problema.
-
-### 3. `preprocesado.py` (Normalización de datos)
-Evita que atributos con escalas grandes (ej. sueldo) dominen sobre atributos pequeños (ej. edad).
-* **`Preprocesamiento` (Abstracta):** Define el contrato con `ajustar(dataset)` y `transformar_dataSet(dataset)`.
-* **`NormalizadorMaxMin`:** Escala todos los valores al rango [0, 1].
-* **`NormalizadorZ_Score`:** Estandariza los datos a media 0 y desviación típica 1 (ideal para outliers).
-> **Nota de diseño:** Los normalizadores previenen el *Data Leakage* aplicando las transformaciones al conjunto de Test basándose exclusivamente en los parámetros aprendidos del conjunto de Train.
-
-### 4. `modelos.py` (Algoritmos Predictivos)
-El núcleo inteligente del proyecto. Todos heredan de la clase base `Modelo` e implementan los métodos `entrenar(dataset)` y `predecir(registro)`.
-* **`Clasificador_kNN` y `Regresor_kNN`:** Algoritmo de los k-Vecinos Más Cercanos. (Incluye un mecanismo de seguridad para que un registro se omita a sí mismo si se evalúa dentro de su propio conjunto de entrenamiento).
-* **`Clasificador_Centroide`:** Calcula el punto medio (centroide) de cada clase y clasifica según la distancia mínima a estos centros.
-* **`RegresionLinealMultiple`:** Implementa una red neuronal de una sola capa mediante el cálculo de pesos (`w`) y sesgo (`b`), optimizados iterativamente para predecir valores continuos.
-
-### 5. `validacion.py` (Evaluación y Optimización)
-Evalúa cómo de buenos son los modelos prediciendo datos que nunca han visto.
-* **Evaluadores (`ValidacionClasificacion` / `ValidacionRegresion`):** * *Funciones clave:* `validacion_simple` (Hold-out test) y `validacion_cruzada` (k-Fold).
-  * *Métricas dinámicas soportadas:* Accuracy y Error Rate (Clasificación) | MAE, MSE y RMSE (Regresión).
-* **`SeleccionAtributos`:** Ordena los atributos por su correlación absoluta de Pearson con el objetivo. Si se pasa al validador junto al escalador, ambos se ajustan solo con entrenamiento, también dentro de cada bolsa.
-
-Para buscar hiperparámetros, reserva primero una prueba final. Compara los candidatos mediante validación cruzada en el conjunto de desarrollo, con las mismas bolsas contiguas para todos. Esa CV es una **puntuación interna**; ajusta de nuevo solo la configuración elegida con todo el conjunto de desarrollo y evalúala una vez en la prueba reservada.
-
----
-
-## Experimento reproducible: Wine
-
-**Versión probada: Python 3.13.** El ejemplo de Wine y las pruebas automatizadas solo usan la biblioteca estándar de Python. Ejecuta el ejemplo desde la raíz del repositorio:
+Desde la raíz del repositorio, con **Python 3.13**, ejecuta el mismo comando que usa [GitHub Actions](.github/workflows/ci.yml). No requiere instalar paquetes:
 
 ```bash
-python3 -m examples.wine
+python -m examples.wine
 ```
 
-El ejemplo reserva aproximadamente el 20 % de cada clase con semilla `42`. Elige `k` por validación cruzada en el resto de los datos y ajusta el escalador Z-score solo con entrenamiento en cada bolsa. En la prueba reservada compara kNN con una línea base que siempre predice la clase mayoritaria del conjunto de desarrollo. Muestra el soporte por clase, el *accuracy*, el *accuracy* balanceado (promedio del *recall* por clase) y el *recall* de cada clase. Es una sola partición de un dataset pequeño; no mide la variación entre distintas particiones.
+El experimento divide las 178 observaciones de Wine en 142 de desarrollo y 36 de prueba estratificada, con semilla `42`. Elige `k` por validación cruzada de cinco bolsas en desarrollo y ajusta el escalado Z-score solo con el entrenamiento de cada bolsa. Después reentrena con todo el conjunto de desarrollo y compara kNN con una línea base que siempre predice su clase mayoritaria (clase `2`). Ambos modelos se evalúan en las mismas 36 muestras reservadas.
 
-Fuente: [Wine de UCI, CC BY 4.0](datos/wine/README.md).
+| Modelo | Accuracy en prueba | Accuracy balanceada en prueba |
+| --- | ---: | ---: |
+| Clase mayoritaria de desarrollo | 38,89 % | 33,33 % |
+| kNN (`k=7`) | 94,44 % | 95,24 % |
 
-Las [demos de clase](examples/) se conservan por separado. Para ejecutar las pruebas automatizadas:
+La salida incluye también el soporte y el *recall* de las tres clases. La *accuracy* balanceada es el promedio del *recall* por clase. Los resultados corresponden a una sola partición de un dataset pequeño: no muestran cuánto cambiarían con otra partición ni garantizan rendimiento en otros datasets.
+
+**Puntuación interna y prueba final:** el 97,24 % de *accuracy* media en validación cruzada se usó para elegir `k`; no es la métrica final. La tabla muestra solo la prueba reservada de Wine. No corresponde al antiguo concurso de clase, que ya no forma parte de la versión actual y cuyos resultados no se presentan como una evaluación independiente.
+
+## Código, pruebas y demos
+
+`src/` contiene los modelos, los lectores CSV y Excel, el escalado MinMax y Z-score, y la selección de atributos por Pearson. El validador ajusta las transformaciones solo con los datos de entrenamiento de cada partición.
 
 ```bash
-python3 -m unittest discover -s tests -v
+python -m unittest discover -s tests -v
 ```
 
-[GitHub Actions](.github/workflows/ci.yml) ejecuta las pruebas y el ejemplo en Ubuntu con Python 3.13 en cada `push` y `pull_request`, sin instalar paquetes adicionales.
-
-Para usar los lectores de Excel, instala las dependencias opcionales: `openpyxl` para `.xlsx` y `xlrd` para `.xls`.
+Las [demos de clase](examples/) están separadas del ejemplo principal. Algunas requieren archivos locales que no se incluyen en un clon nuevo; consulta el [inventario de datos](datos/README.md). Para usar los lectores de Excel (`openpyxl` para `.xlsx` y `xlrd` para `.xls`), instala las dependencias opcionales:
 
 ```bash
-python3 -m pip install -r requirements-excel.txt
+python -m pip install -r requirements-excel.txt
 ```
 
-## 📂 Estructura del Proyecto
+## Datos, materiales y licencias
 
-```text
-📁 Proyecto_Machine_Learning/
-├── 📄 README.md                                    # Documentación principal del proyecto
-│
-├── 📁 datos/                                       # Directorio de datasets (archivos de datos)
-│   ├── 📁 BreastCancerWisconsinDiagnostic/         # Daros de cancer de mama en Wisconsin (concurso)
-│   ├── 📁 ConcreteCompressiveStrength/             # Datos de la fuerza compresiva del cemento (concurso)             
-│   ├── 📁 wine/                                    # Datos en bruto de vinos (Clasificación)
-│   ├── 📄 BostonHousing.csv                        # Precios de casas en Boston (Regresión)
-│   ├── 📄 diabetes.csv                             # Diagnóstico de pacientes (Clasificación)
-│   └── 📄 iris.xlsx                                # Especies de flores (Clasificación)
-│
-├── 📁 src/                                         # Código fuente (El "motor" de la librería)
-│   ├── 📄 factoria.py                              # Lector de datos tanto CSV como Excel             
-│   ├── 📄 dataset.py                               # Manejo de tablas, particiones y filtros
-│   ├── 📄 modelos.py                               # Algoritmos predictivos (kNN, Centroide, RLM)
-│   ├── 📄 preprocesado.py                          # Normalizadores de escala (MaxMin, Z-Score)
-│   ├── 📄 registro.py                              # Estructura de filas (Clasificación y Regresión)
-│   └── 📄 validacion.py                            # Evaluación de métricas, k-Fold y Pearson
-│
-├── examples/                                      # Experimento Wine y demos de clase
-└── tests/                                         # Pruebas automatizadas con unittest
-```
+El [inventario de datos](datos/README.md) documenta las fuentes, las condiciones de redistribución y qué materiales quedaron fuera. El código no tiene una licencia explícita; las licencias de los datasets no se aplican al código.

@@ -1,6 +1,7 @@
 import csv
 import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from src.factoria import FactoriaCSV
 
@@ -30,21 +31,24 @@ class TestFactoriaCSV(unittest.TestCase):
         self.assertEqual(dataset.registros[0].objetivo, "M")
         self.assertEqual(dataset.registros[0].atributos[:2], [842302, 17.99])
 
-    def test_boston_usa_medv_sin_incluir_su_categoria(self):
-        ruta = DATOS / "BostonHousing.csv"
-        dataset = FactoriaCSV.crear_dataset_regresion(
-            ruta, indice_objetivo="MEDV", tiene_cabecera=True,
-            excluir_columnas=("CAT. MEDV",),
-        )
+    def test_esquema_boston_usa_medv_sin_incluir_su_categoria(self):
         predictores = [
             "CRIM", "ZN", "INDUS", "CHAS", "NOX", "RM",
             "AGE", "DIS", "RAD", "TAX", "PTRATIO", "LSTAT",
         ]
+        atributos = list(range(12))
+        with TemporaryDirectory() as directorio:
+            ruta = Path(directorio) / "sintetico.csv"
+            with ruta.open("w", encoding="utf-8", newline="") as archivo:
+                escritor = csv.writer(archivo)
+                escritor.writerow(predictores + ["MEDV", "CAT. MEDV"])
+                escritor.writerow(atributos + [25.5, 1])
+            dataset = FactoriaCSV.crear_dataset_regresion(
+                ruta, indice_objetivo="MEDV", tiene_cabecera=True,
+                excluir_columnas=("CAT. MEDV",),
+            )
 
         self.assertEqual(dataset.nombres_atributos, predictores)
-        with ruta.open(encoding="utf-8-sig", newline="") as archivo:
-            filas = list(csv.DictReader(archivo))
-        self.assertEqual(len(dataset.registros), len(filas))
-        for registro, fila in zip(dataset.registros, filas):
-            self.assertEqual(registro.objetivo, float(fila["MEDV"]))
-            self.assertEqual(registro.atributos, [float(fila[nombre]) for nombre in predictores])
+        self.assertEqual(len(dataset.registros), 1)
+        self.assertEqual(dataset.registros[0].objetivo, 25.5)
+        self.assertEqual(dataset.registros[0].atributos, atributos)
