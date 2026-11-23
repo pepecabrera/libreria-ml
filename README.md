@@ -47,7 +47,7 @@ Para buscar hiperparámetros, reserva primero una prueba final. Compara los cand
 
 ## Experimento reproducible: Wine
 
-Desde la raíz del repositorio, ejecuta el ejemplo principal. No requiere instalar paquetes externos:
+**Versión probada: Python 3.13.** El ejemplo de Wine y las pruebas automatizadas solo usan la biblioteca estándar de Python. Ejecuta el ejemplo desde la raíz del repositorio:
 
 ```bash
 python3 -m examples.wine
@@ -61,6 +61,14 @@ Las [demos de clase](examples/) se conservan por separado. Para ejecutar las pru
 
 ```bash
 python3 -m unittest discover -s tests -v
+```
+
+[GitHub Actions](.github/workflows/ci.yml) ejecuta las pruebas y el ejemplo en Ubuntu con Python 3.13 en cada `push` y `pull_request`, sin instalar paquetes adicionales.
+
+Para usar los lectores de Excel, instala las dependencias opcionales: `openpyxl` para `.xlsx` y `xlrd` para `.xls`.
+
+```bash
+python3 -m pip install -r requirements-excel.txt
 ```
 
 ## 📂 Estructura del Proyecto
