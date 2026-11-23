@@ -20,16 +20,17 @@ class TestFactoriaCSV(unittest.TestCase):
         self.assertEqual(dataset.registros[0].objetivo, "1")
         self.assertEqual(dataset.registros[0].atributos[0], 14.23)
 
-    def test_wdbc_conserva_la_primera_observacion(self):
-        dataset = FactoriaCSV.crear_dataset_clasificacion(
-            DATOS / "BreastCancerWisconsinDiagnostic" / "wdbc.data",
-            indice_objetivo=1, tiene_cabecera=False,
-        )
+    def test_csv_sin_cabecera_conserva_la_primera_fila_con_objetivo_intermedio(self):
+        with TemporaryDirectory() as directorio:
+            ruta = Path(directorio) / "sintetico.csv"
+            ruta.write_text("1,A,2.5\n2,B,3.5\n", encoding="utf-8")
+            dataset = FactoriaCSV.crear_dataset_clasificacion(
+                ruta, indice_objetivo=1, tiene_cabecera=False,
+            )
 
-        self.assertEqual(len(dataset.registros), 569)
-        self.assertEqual(len(dataset.nombres_atributos), 31)
-        self.assertEqual(dataset.registros[0].objetivo, "M")
-        self.assertEqual(dataset.registros[0].atributos[:2], [842302, 17.99])
+        self.assertEqual(len(dataset.nombres_atributos), 2)
+        self.assertEqual([reg.objetivo for reg in dataset.registros], ["A", "B"])
+        self.assertEqual([reg.atributos for reg in dataset.registros], [[1.0, 2.5], [2.0, 3.5]])
 
     def test_esquema_boston_usa_medv_sin_incluir_su_categoria(self):
         predictores = [
